@@ -1,0 +1,972 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>거여동성당 비품관리 시스템</title>
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="거여동성당 비품관리 시스템">
+<meta property="og:description" content="실시간으로 도면을 편집하고 비품을 관리하는 공유형 시스템">
+<meta property="og:image" content="http://www.geoyeosd.or.kr/kr/images/content/img01.jpg">
+<meta property="og:image:width" content="400">
+<meta property="og:image:height" content="300">
+
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏢</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F8F7FC;
+  --surface:#FFFFFF;
+  --surface2:#F2F0FA;
+  --border:#E4E1F5;
+  --border2:#CBC7E8;
+  --text:#1A1830;
+  --text2:#6B6790;
+  --text3:#9C99B8;
+  --accent:#534AB7;
+  --accent-light:#EEEDFE;
+  --accent-mid:#7F77DD;
+  --accent-dark:#3C3489;
+  --danger:#E24B4A;
+  --danger-light:#FCEBEB;
+  --success:#1D9E75;
+  --success-light:#E1F5EE;
+}
+body{font-family:'Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:13px;line-height:1.5}
+
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 16px;display:flex;align-items:center;gap:12px;height:56px;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:6px;font-size:15px;font-weight:600;color:var(--accent-dark)}
+.logo-emoji{font-size:18px}
+.header-subtitle{font-size:11px;color:var(--text3);margin-left:2px;margin-top:2px}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:6px}
+
+.container{max-width:1100px;margin:0 auto;padding:16px 12px 48px}
+
+.tab-bar{display:flex;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:4px;margin-bottom:16px;width:fit-content}
+.tab{padding:6px 14px;font-size:12px;font-weight:500;cursor:pointer;border:none;background:none;color:var(--text2);border-radius:7px;transition:all 0.15s;display:flex;align-items:center;gap:4px}
+.tab.active{background:var(--accent);color:#fff}
+.tab:not(.active):hover{background:var(--surface2);color:var(--text)}
+
+.toolbar{display:flex;gap:6px;margin-bottom:12px;align-items:center;flex-wrap:wrap}
+.select-floor{padding:6px 10px;font-size:12px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);cursor:pointer;font-family:'Noto Sans KR',sans-serif;font-weight:500;outline:none}
+.select-floor:focus{border-color:var(--accent)}
+
+.btn{padding:6px 12px;font-size:12px;font-weight:500;border:1px solid var(--border);border-radius:8px;cursor:pointer;background:var(--surface);color:var(--text);display:flex;align-items:center;gap:4px;transition:all 0.15s;font-family:'Noto Sans KR',sans-serif;white-space:nowrap}
+.btn:hover{border-color:var(--border2);background:var(--surface2)}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.danger{color:var(--danger);border-color:#F7C1C1}
+.btn.danger:hover{background:var(--danger-light)}
+
+.floor-layout{display:grid;grid-template-columns:1fr 290px;gap:16px;align-items:start}
+
+.canvas-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.canvas-header{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.canvas-header-title{font-size:13px;font-weight:600;color:var(--text)}
+.canvas-header-hint{font-size:11px;color:var(--text3);margin-left:4px}
+.floor-canvas{position:relative;background:var(--surface2);width:100%;aspect-ratio:2.1/1;overflow:hidden}
+.canvas-grid{position:absolute;inset:0;background-image:linear-gradient(var(--border) 1px,transparent 1px),linear-gradient(90deg,var(--border) 1px,transparent 1px);background-size:2.5% 5%;opacity:0.4}
+
+.room{position:absolute;border:1.5px solid var(--accent-mid);background:rgba(206,203,246,0.15);border-radius:6px;cursor:grab;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2px;text-align:center;user-select:none;overflow:hidden}
+.room:hover{background:rgba(206,203,246,0.3);border-color:var(--accent)}
+.room.selected{background:rgba(127,119,221,0.22);border-color:var(--accent-dark);box-shadow:0 0 0 2px rgba(83,74,183,0.15)}
+.room.dragging{opacity:0.75;cursor:grabbing;z-index:50}
+.room-name{font-size:10px;font-weight:600;color:var(--accent-dark);line-height:1.1;pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%}
+.room-badge{font-size:8px;color:var(--accent);background:var(--accent-light);padding:0px 4px;border-radius:8px;margin-top:1px;pointer-events:none;transform:scale(0.9)}
+.resize-handle{position:absolute;width:12px;height:12px;background:var(--accent);border-radius:3px;opacity:0;transition:opacity 0.15s;z-index:10}
+.resize-handle::after{content:'';position:absolute;inset:3px;border-right:1.5px solid #fff;border-bottom:1.5px solid #fff}
+.resize-handle.se{bottom:1px;right:1px;cursor:se-resize}
+.resize-handle.sw{bottom:1px;left:1px;cursor:sw-resize;transform:scaleX(-1)}
+.resize-handle.ne{top:1px;right:1px;cursor:ne-resize;transform:scaleY(-1)}
+.resize-handle.nw{top:1px;left:1px;cursor:nw-resize;transform:scale(-1)}
+.room.selected .resize-handle{opacity:1}
+
+.resize-guide {position:absolute;border:2px dashed var(--accent-dark);background:rgba(83,74,183,0.1);border-radius:6px;pointer-events:none;z-index:60;display:none}
+
+.panel-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;position:sticky;top:72px}
+.panel-header{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px}
+.panel-header-title{font-size:13px;font-weight:600}
+.panel-body{padding:12px 10px}
+
+.empty-state{text-align:center;padding:24px 16px;color:var(--text3)}
+.empty-state p{font-size:12px;line-height:1.5}
+
+.section-label{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px}
+.divider{border:none;border-top:1px solid var(--border);margin:12px 0}
+
+.name-input{width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text);outline:none;margin-bottom:10px}
+.name-input:focus{border-color:var(--accent)}
+
+.desc-textarea{width:100%;padding:6px 8px;font-size:12px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text);outline:none;margin-bottom:10px;resize:vertical;min-height:54px;font-family:inherit;line-height:1.4}
+.desc-textarea:focus{border-color:var(--accent)}
+
+.photo-input-group {display:flex;gap:4px;margin-bottom:8px}
+.photo-input {flex:1;padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:6px;outline:none;background:var(--bg)}
+.photo-input:focus {border-color:var(--accent)}
+.photo-gallery {display:flex;gap:6px;overflow-x:auto;padding:2px 0 6px;margin-bottom:6px;width:100%;scrollbar-width:thin}
+.photo-thumb-wrap {position:relative;width:64px;height:48px;flex-shrink:0;border-radius:4px;border:1px solid var(--border);overflow:hidden;cursor:pointer}
+.photo-thumb {width:100%;height:100%;object-fit:cover}
+.photo-thumb-del {position:absolute;top:0;right:0;background:rgba(226,75,74,0.85);color:#fff;width:16px;height:16px;font-size:10px;display:flex;align-items:center;justify-content:center;border-bottom-left-radius:4px;border:none;cursor:pointer}
+.photo-thumb-del:hover {background:var(--danger)}
+
+/* ★ 확대/축소 스크롤 줌 렉 방지를 위한 모달 배경 및 컨테이너 스타일 고도화 ★ */
+.photo-modal {position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:2000;display:none;align-items:center;justify-content:center;user-select:none;overflow:hidden}
+.modal-close {position:absolute;top:16px;right:16px;color:#fff;font-size:32px;background:none;border:none;cursor:pointer;z-index:2100}
+.modal-content-wrap {position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center}
+
+/* 이미지가 모달 내 영역을 벗어나서 스크롤 확대되도록 컨테이너와 커서 커스텀 적용 */
+.modal-img-viewport {width:85%;height:85%;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.modal-img {max-width:100%;max-height:100%;border-radius:4px;box-shadow:0 8px 32px rgba(0,0,0,0.6);object-fit:contain;position:absolute;transform-origin:center center;cursor:grab;transition:transform 0.05s ease-out}
+.modal-img:active {cursor:grabbing}
+
+.modal-btn {position:absolute;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.15);color:#fff;border:none;width:44px;height:44px;font-size:22px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.2s;z-index:2050}
+.modal-btn:hover {background:rgba(255,255,255,0.35)}
+.modal-btn.prev {left:24px}
+.modal-btn.next {right:24px}
+.modal-index {position:absolute;bottom:24px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.7);font-size:12px;font-weight:500;background:rgba(0,0,0,0.5);padding:4px 12px;border-radius:12px;z-index:2050}
+/* 스크롤 가이드 안내 뱃지 */
+.modal-zoom-hint {position:absolute;top:24px;left:50%;transform:translateX(-50%);color:rgba(255,255,255,0.5);font-size:11px;z-index:2050;background:rgba(255,255,255,0.08);padding:3px 10px;border-radius:6px;pointer-events:none}
+
+.items-header{display:flex;font-size:11px;color:var(--text3);padding:0 2px;margin-bottom:4px;gap:4px;align-items:center}
+.items-header .ih-name{flex: 3.5; text-align:left}
+.items-header .ih-num{width: 38px; text-align:center}
+.items-header .ih-note{flex: 2.5; text-align:left}
+.items-header .ih-del{width: 26px; text-align:center; flex-shrink:0}
+
+.item-row{display:flex;align-items:center;gap:4px;margin-bottom:6px;width:100%}
+.item-input{font-size:12px;padding:5px 4px;border:1px solid var(--border);border-radius:6px;background:var(--bg);color:var(--text);outline:none;min-width:0}
+.item-input:focus{border-color:var(--accent)}
+.item-input.name{flex: 3.5}
+.item-input.num{width: 38px; text-align:center; padding:5px 1px}
+.item-input.note{flex: 2.5}
+
+.del-btn{width:26px;height:26px;background:none;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;border-radius:6px;flex-shrink:0;padding:0;font-size:12px}
+.del-btn:hover{background:var(--danger-light);box-shadow: 0 0 0 1px #F7C1C1}
+
+.add-item-btn{width:100%;padding:7px;font-size:12px;color:var(--accent);background:none;border:1px dashed var(--accent-mid);border-radius:6px;cursor:pointer;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:4px}
+.add-item-btn:hover{background:var(--accent-light)}
+
+.floor-badge{font-size:11px;font-weight:600;padding:2px 6px;border-radius:6px;background:var(--accent-light);color:var(--accent-dark);margin-left:auto}
+
+.list-view{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.list-toolbar{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px}
+.list-count{font-size:12px;color:var(--text2)}
+table{width:100%;border-collapse:collapse}
+thead{background:var(--surface2)}
+th{text-align:left;padding:8px 10px;font-size:11px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border)}
+td{padding:8px 10px;font-size:12px;border-bottom:1px solid var(--border);color:var(--text)}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover td{background:var(--bg)}
+.floor-chip{display:inline-block;font-size:10px;padding:1px 5px;border-radius:5px;font-weight:500;background:var(--accent-light);color:var(--accent-dark)}
+.qty-cell{text-align:center;font-weight:500;color:var(--accent)}
+.note-cell{color:var(--text3);font-size:11px}
+.desc-cell{color:var(--text2);font-size:11px;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.no-data{text-align:center;padding:30px;color:var(--text3);font-size:12px}
+
+@media(max-width:768px){
+  header{padding:0 12px; height:50px}
+  .logo{font-size:14px}
+  .container{padding:12px 8px 32px}
+  .floor-layout{grid-template-columns:1fr}
+  .panel-card{position:static; margin-top:8px}
+  .floor-canvas{aspect-ratio: 1.8/1}
+  .room-name{font-size: 8.5px; transform: scale(0.95)}
+  .item-input{font-size:11px; padding:6px 4px}
+  .items-header{font-size:10px}
+  .modal-btn.prev {left:8px}
+  .modal-btn.next {right:8px}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <span class="logo-emoji">🏢</span>
+    <span>비품 관리</span>
+    <span class="header-subtitle">Building Inventory</span>
+  </div>
+  <div class="header-right">
+    <button class="btn" onclick="resetData()" title="초기화" style="color:var(--danger);border-color:#F7C1C1">
+      🔄 초기화
+    </button>
+    <button class="btn primary" onclick="exportExcel()">
+      📥 엑셀
+    </button>
+  </div>
+</header>
+
+<div class="container">
+  <div class="tab-bar">
+    <button class="tab active" onclick="showTab('map')" id="tab-map">
+      🗺️ 층별 도면
+    </button>
+    <button class="tab" onclick="showTab('list')" id="tab-list">
+      📋 전체 목록
+    </button>
+  </div>
+
+  <div id="view-map">
+    <div class="toolbar">
+      <select class="select-floor" id="floor-select" onchange="changeFloor()">
+        <option value="F0">🏡 마당(주차장)</option>
+        <option value="B1">🅱 지하 1층</option>
+        <option value="F1" selected>1 지상 1층</option>
+        <option value="F2">2 지상 2층</option>
+        <option value="F3">3 지상 3층</option>
+      </select>
+      <button class="btn" onclick="addRoom()">➕ 공간 추가</button>
+      <button class="btn danger" onclick="deleteRoom()" id="del-room-btn" style="display:none">
+        🗑️ 공간 삭제
+      </button>
+    </div>
+
+    <div class="floor-layout">
+      <div class="canvas-card">
+        <div class="canvas-header">
+          <span style="font-size:13px">📍</span>
+          <span class="canvas-header-title" id="floor-title">지상 1층</span>
+          <span class="canvas-header-hint">— 클릭하여 관리 (Ctrl+드래그시 복사)</span><span id="save-indicator" style="margin-left:auto;font-size:11px;color:var(--text3);display:flex;align-items:center;gap:4px">💾 연결 중...</span>
+        </div>
+        <div class="floor-canvas" id="floor-canvas">
+          <div class="canvas-grid"></div>
+          <div class="resize-guide" id="resize-guide"></div>
+        </div>
+      </div>
+
+      <div class="panel-card" id="side-panel">
+        <div class="panel-header">
+          <span style="font-size:13px">📦</span>
+          <span class="panel-header-title">비품 목록</span>
+        </div>
+        <div class="panel-body">
+          <div class="empty-state">
+            <p>👇<br><br>공간을 클릭하면<br>비품 목록이 표시돼요</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="view-list" style="display:none">
+    <div class="list-view">
+      <div class="list-toolbar">
+        <span class="list-count" id="list-count">전체 0개 항목</span>
+        <button class="btn primary" onclick="exportExcel()" style="margin-left:auto">
+          📥 엑셀 출력
+        </button>
+      </div>
+      <table>
+        <thead>
+          <tr><th>층</th><th>장소</th><th>공간 설명</th><th>물품</th><th style="text-align:center">개수</th><th>비고</th></tr>
+        </thead>
+        <tbody id="list-tbody"></tbody>
+      </table>
+      <div class="no-data" id="no-data" style="display:none">등록된 비품이 없어요</div>
+    </div>
+  </div>
+</div>
+
+<div class="photo-modal" id="photo-modal">
+  <button class="modal-close" onclick="closePhotoModal()">&times;</button>
+  <div class="modal-zoom-hint">🖱️ 마우스 휠: 확대/축소  |  🖐️ 드래그: 사진 이동</div>
+  <div class="modal-content-wrap">
+    <button class="modal-btn prev" onclick="moveModalPhoto(-1)">&#10094;</button>
+    <div class="modal-img-viewport" id="modal-img-viewport">
+      <img src="" class="modal-img" id="modal-img">
+    </div>
+    <button class="modal-btn next" onclick="moveModalPhoto(1)">&#10095;</button>
+    <div class="modal-index" id="modal-index">1 / 1</div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+// ★★★여기에 본인의 구글 앱스 스크립트 배포 주소를 붙여넣으세요★★★
+const API_URL = "https://script.google.com/macros/s/AKfycbzYkPjCYhTDfLNNiuYtzJxOoHBeWOEhQKOLmZKIWQ8EhL8w_KMIb1yW3mZ_4GnZsRsLFQ/exec";
+
+const FLOOR_NAMES={F0:'마당(주차장)',B1:'지하 1층',F1:'지상 1층',F2:'지상 2층',F3:'지상 3층'};
+const FLOOR_ORDER=['F0','B1','F1','F2','F3'];
+let currentFloor='F1';
+let selectedRoom=null;
+
+let modalPhotos = [];
+let modalCurrentIdx = 0;
+
+// ★ 실시간 사진 줌인/줌아웃 및 드래그 트래킹 상태 제어용 변수 생성 ★
+let imgScale = 1;
+let imgPanX = 0;
+let imgPanY = 0;
+let isImgDragging = false;
+let startPanX = 0;
+let startPanY = 0;
+
+const defaultData={F0:[],B1:[],F1:[],F2:[],F3:[]};
+
+let data = {};
+let saveTimeout = null;
+
+function saveData(){
+  const ind=document.getElementById('save-indicator');
+  if(ind){ ind.style.color='var(--text2)'; ind.innerHTML='🔄 저장 중...'; }
+  if(saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(() => {
+    fetch(API_URL, {
+      method: "POST",
+      mode: "no-cors",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    })
+    .then(() => {
+      if(ind){
+        ind.style.color='var(--success)'; ind.innerHTML='✅ 저장됨';
+        setTimeout(()=>{ ind.style.color='var(--text3)'; ind.innerHTML='💾 자동 저장됨'; },1500);
+      }
+    })
+    .catch(e => { if(ind){ ind.style.color='var(--danger)'; ind.innerHTML='⚠️ 저장 실패'; } });
+  }, 800);
+}
+
+function loadData(){
+  const ind=document.getElementById('save-indicator');
+  fetch(API_URL)
+    .then(res => res.json())
+    .then(json => {
+      if(json && json.B1 && json.F1) {
+        data = json;
+        if(!data.F0) data.F0 = [];
+      } else { data = JSON.parse(JSON.stringify(defaultData)); }
+      if(ind){ ind.style.color='var(--text3)'; ind.innerHTML='💾 동기화 완료'; }
+      changeFloor();
+    })
+    .catch(e => {
+      console.error("데이터 로드 실패", e);
+      data = JSON.parse(JSON.stringify(defaultData));
+      if(ind){ ind.style.color='var(--danger)'; ind.innerHTML='⚠️ 로드 실패'; }
+      changeFloor();
+    });
+}
+
+function h(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+
+function changeFloor(){
+  currentFloor=document.getElementById('floor-select').value;
+  selectedRoom=null;
+  document.getElementById('floor-title').textContent=FLOOR_NAMES[currentFloor];
+  const delBtn = document.getElementById('del-room-btn');
+  if(delBtn) delBtn.style.display='none';
+  renderFloor();renderPanel();
+}
+
+function renderFloor(){
+  const canvas=document.getElementById('floor-canvas');
+  if(!canvas) return;
+  const rooms=data[currentFloor]||[];
+  const existing=[...canvas.querySelectorAll('.room')];
+  existing.forEach(e=>e.remove());
+  rooms.forEach(room=>{
+    const el=document.createElement('div');
+    el.className='room'+(selectedRoom&&selectedRoom.id===room.id?' selected':'');
+    el.style.cssText=`left:${room.x}%;top:${room.y}%;width:${room.w}%;height:${room.h}%`;
+    const total=room.items.reduce((s,i)=>s+Number(i.qty||0),0);
+    el.innerHTML=`<span class="room-name">${h(room.name)}</span>${total>0?`<span class="room-badge">${total}개</span>`:''}
+      <div class="resize-handle se" data-dir="se"></div>
+      <div class="resize-handle sw" data-dir="sw"></div>
+      <div class="resize-handle ne" data-dir="ne"></div>
+      <div class="resize-handle nw" data-dir="nw"></div>`;
+    el.dataset.roomId=room.id;
+    attachRoomEvents(el, room.id);
+    canvas.appendChild(el);
+  });
+}
+
+function getRoom(id){return(data[currentFloor]||[]).find(r=>r.id===id);}
+
+function attachRoomEvents(el, roomId){
+  let dragState=null;
+  const guide = document.getElementById('resize-guide');
+
+  el.addEventListener('mousedown', e=>{
+    e.stopPropagation();
+    const room = getRoom(roomId);
+    if(!room) return;
+
+    if(e.target.classList.contains('resize-handle')){
+      e.stopPropagation(); e.preventDefault();
+      const dir=e.target.dataset.dir;
+      const canvas=document.getElementById('floor-canvas');
+      const cr=canvas.getBoundingClientRect();
+      
+      dragState={type:'resize',dir,startX:e.clientX,startY:e.clientY,
+        origX:room.x,origY:room.y,origW:room.w,origH:room.h,cw:cr.width,ch:cr.height};
+      
+      if(guide){
+        guide.style.display = 'block';
+        guide.style.cssText = `display:block;left:${room.x}%;top:${room.y}%;width:${room.w}%;height:${room.h}%`;
+      }
+      
+      selectRoom(roomId);
+      document.addEventListener('mousemove',onDrag);
+      document.addEventListener('mouseup',onUp);
+      return;
+    }
+
+    e.preventDefault();
+    const canvas=document.getElementById('floor-canvas');
+    const cr=canvas.getBoundingClientRect();
+    
+    if(e.ctrlKey) {
+      const rooms = data[currentFloor];
+      const newId = currentFloor + '-' + Date.now();
+      const copiedRoom = {
+        id: newId,
+        name: room.name + ' (복사)',
+        desc: room.desc || '',
+        photos: room.photos ? [...room.photos] : [],
+        x: room.x,
+        y: room.y,
+        w: room.w,
+        h: room.h,
+        items: JSON.parse(JSON.stringify(room.items))
+      };
+      rooms.push(copiedRoom);
+      selectedRoom = copiedRoom;
+      renderFloor();
+      
+      const newEl = canvas.querySelector(`[data-roomId="${newId}"]`);
+      if(newEl) {
+        dragState={type:'move',startX:e.clientX,startY:e.clientY,origX:room.x,origY:room.y,cw:cr.width,ch:cr.height,targetId:newId,el:newEl};
+        newEl.classList.add('dragging');
+      }
+    } else {
+      dragState={type:'move',startX:e.clientX,startY:e.clientY,origX:room.x,origY:room.y,cw:cr.width,ch:cr.height,targetId:roomId,el:el};
+      el.classList.add('dragging');
+    }
+    
+    document.addEventListener('mousemove',onDrag);
+    document.addEventListener('mouseup',onUp);
+  });
+
+  el.addEventListener('touchstart', e=>{
+    e.stopPropagation();
+    if(e.target.classList.contains('resize-handle')) return;
+    const touch = e.touches[0];
+    const canvas=document.getElementById('floor-canvas');
+    const cr=canvas.getBoundingClientRect();
+    const room=getRoom(roomId);
+    if(!room)return;
+    dragState={type:'move',startX:touch.clientX,startY:touch.clientY,origX:room.x,origY:room.y,cw:cr.width,ch:cr.height,targetId:roomId,el:el};
+    el.classList.add('dragging');
+    
+    const onTouchMove = (em) => {
+      if(!dragState) return;
+      const tm = em.touches[0];
+      const dx=(tm.clientX-dragState.startX)/dragState.cw*100;
+      const dy=(tm.clientY-dragState.startY)/dragState.ch*100;
+      const tRoom = getRoom(dragState.targetId);
+      tRoom.x=Math.max(0,Math.min(100-tRoom.w, Math.round(dragState.origX+dx)));
+      tRoom.y=Math.max(0,Math.min(100-tRoom.h, Math.round(dragState.origY+dy)));
+      dragState.el.style.cssText=`left:${tRoom.x}%;top:${tRoom.y}%;width:${tRoom.w}%;height:${tRoom.h}%`;
+    };
+    
+    const onTouchEnd = () => {
+      el.classList.remove('dragging');
+      saveData();
+      selectRoom(dragState.targetId);
+      dragState=null;
+      document.removeEventListener('touchmove', onTouchMove);
+      document.removeEventListener('touchend', onTouchEnd);
+    };
+    document.addEventListener('touchmove', onTouchMove);
+    document.addEventListener('touchend', onTouchEnd);
+  });
+
+  function onDrag(e){
+    if(!dragState)return;
+    const room = getRoom(dragState.targetId || roomId);
+    if(!room)return;
+    const dx=(e.clientX-dragState.startX)/dragState.cw*100;
+    const dy=(e.clientY-dragState.startY)/dragState.ch*100;
+    
+    if(dragState.type==='move'){
+      room.x=Math.max(0,Math.min(100-room.w, Math.round(dragState.origX+dx)));
+      room.y=Math.max(0,Math.min(100-room.h, Math.round(dragState.origY+dy)));
+      dragState.el.style.cssText=`left:${room.x}%;top:${room.y}%;width:${room.w}%;height:${room.h}%`;
+    } else {
+      const dir=dragState.dir;
+      let nx=dragState.origX, ny=dragState.origY, nw=dragState.origW, nh=dragState.origH;
+      if(dir.includes('e')){nw=Math.max(5,Math.round(dragState.origW+dx));}
+      if(dir.includes('s')){nh=Math.max(5,Math.round(dragState.origH+dy));}
+      if(dir.includes('w')){const nd=Math.min(dragState.origW-5,Math.round(dx));nx=dragState.origX+nd;nw=dragState.origW-nd;}
+      if(dir.includes('n')){const nd=Math.min(dragState.origH-5,Math.round(dy));ny=dragState.origY+nd;nh=dragState.origH-nd;}
+      
+      if(guide){
+        guide.style.cssText=`display:block;left:${Math.max(0,nx)}%;top:${Math.max(0,ny)}%;width:${Math.max(5,nw)}%;height:${Math.max(5,nh)}%`;
+      }
+      
+      dragState.currentX = Math.max(0,nx); dragState.currentY = Math.max(0,ny);
+      dragState.currentW = Math.max(5,nw); dragState.currentH = Math.max(5,nh);
+    }
+  }
+
+  function onUp(){
+    if(!dragState)return;
+    if(dragState.el) dragState.el.classList.remove('dragging');
+    
+    if(dragState.type === 'resize' && dragState.currentW !== undefined) {
+      const room = getRoom(roomId);
+      if(room) {
+        room.x = dragState.currentX; room.y = dragState.currentY;
+        room.w = dragState.currentW; room.h = dragState.currentH;
+      }
+    }
+    if(guide) guide.style.display = 'none';
+    
+    saveData();
+    selectRoom(dragState.targetId || roomId);
+    dragState=null;
+    document.removeEventListener('mousemove',onDrag);
+    document.removeEventListener('mouseup',onUp);
+  }
+}
+
+function selectRoom(id){
+  const rooms=data[currentFloor]||[];
+  selectedRoom=rooms.find(r=>r.id===id)||null;
+  const delBtn = document.getElementById('del-room-btn');
+  if(delBtn) delBtn.style.display=selectedRoom?'flex':'none';
+  renderFloor();renderPanel();
+}
+
+function convertDriveUrl(url) {
+  if(!url) return "";
+  if(/inline_embed|googleusercontent/i.test(url)) return url; 
+  let fileId = "";
+  let match1 = url.match(/\/file\/d\/([^\/\?\s]+)/);
+  if(match1 && match1[1]) { fileId = match1[1]; } else {
+    let match2 = url.match(/[?&]id=([^&]+)/);
+    if(match2 && match2[1]) { fileId = match2[1]; } else {
+      let match3 = url.match(/\/d\/([^\/\?\s]+)/);
+      if(match3 && match3[1]) { fileId = match3[1]; }
+    }
+  }
+  if(fileId) { return "https://lh3.googleusercontent.com/d/" + fileId; }
+  return url;
+}
+
+function renderPanel(){
+  const panel=document.getElementById('side-panel');
+  if(!panel) return;
+  if(!selectedRoom){
+    panel.innerHTML='';
+    const hdr=document.createElement('div');hdr.className='panel-header';
+    hdr.innerHTML='<span>📦</span><span class="panel-header-title">비품 목록</span>';
+    const body=document.createElement('div');body.className='panel-body';
+    body.innerHTML='<div class="empty-state"><p>👇<br><br>공간을 클릭하면<br>비품 목록이 표시돼요</p></div>';
+    panel.appendChild(hdr);panel.appendChild(body);
+    return;
+  }
+  const r=selectedRoom;
+  panel.innerHTML='';
+
+  const hdr=document.createElement('div');hdr.className='panel-header';
+  hdr.innerHTML=`<span>🚪</span><span class="panel-header-title">${h(r.name)}</span><span class="floor-badge">${FLOOR_NAMES[currentFloor]}</span>`;
+  panel.appendChild(hdr);
+
+  const body=document.createElement('div');body.className='panel-body';
+
+  const sl1=document.createElement('div');sl1.className='section-label';sl1.textContent='공간명';
+  body.appendChild(sl1);
+  const nameIn=document.createElement('input');
+  nameIn.className='name-input';nameIn.type='text';nameIn.value=r.name;nameIn.placeholder='공간명 입력';
+  nameIn.addEventListener('change',()=>updateRoomName(r.id,nameIn.value));
+  body.appendChild(nameIn);
+
+  const slDesc=document.createElement('div');slDesc.className='section-label';slDesc.textContent='공간 설명 (메모)';
+  body.appendChild(slDesc);
+  const descIn=document.createElement('textarea');
+  descIn.className='desc-textarea';descIn.placeholder='용도, 참고사항 등 자유로운 메모 입력...';
+  descIn.value=r.desc || '';
+  descIn.addEventListener('change',()=>updateRoomDesc(r.id, descIn.value));
+  body.appendChild(descIn);
+
+  const slPhoto=document.createElement('div');slPhoto.className='section-label';slPhoto.textContent='공간 사진 등록';
+  body.appendChild(slPhoto);
+
+  const photoGroup = document.createElement('div');photoGroup.className='photo-input-group';
+  const pInput = document.createElement('input');pInput.className='photo-input';pInput.type='text';pInput.placeholder='구글 드라이브 공유 링크 붙여넣기';
+  const pBtn = document.createElement('button');pBtn.className='btn primary';pBtn.textContent='추가';
+  pBtn.addEventListener('click', () => {
+    if(!pInput.value.trim()) return;
+    addRoomPhoto(r.id, pInput.value.trim());
+    pInput.value = "";
+  });
+  photoGroup.appendChild(pInput);photoGroup.appendChild(pBtn);
+  body.appendChild(photoGroup);
+
+  const gallery = document.createElement('div');gallery.className='photo-gallery';
+  const photos = r.photos || [];
+  if(photos.length === 0) {
+    gallery.innerHTML = '<span style="font-size:11px;color:var(--text3);padding:8px 0">등록된 사진이 없습니다.</span>';
+  } else {
+    photos.forEach((url, pIdx) => {
+      const wrap = document.createElement('div');wrap.className='photo-thumb-wrap';
+      const webUrl = convertDriveUrl(url);
+      wrap.innerHTML = `<img src="${webUrl}" class="photo-thumb">`;
+      wrap.addEventListener('click', (e) => {
+        if(e.target.classList.contains('photo-thumb-del')) return;
+        openPhotoModal(photos, pIdx);
+      });
+
+      const pDel = document.createElement('button');pDel.className='photo-thumb-del';pDel.innerHTML='&times;';pDel.title='삭제';
+      pDel.addEventListener('click', (e) => {
+        e.stopPropagation();
+        removeRoomPhoto(r.id, pIdx);
+      });
+      wrap.appendChild(pDel);
+      gallery.appendChild(wrap);
+    });
+  }
+  body.appendChild(gallery);
+
+  const div=document.createElement('hr');div.className='divider';body.appendChild(div);
+
+  const sl2=document.createElement('div');sl2.className='section-label';sl2.textContent='비품 목록';
+  body.appendChild(sl2);
+
+  const ihdr=document.createElement('div');ihdr.className='items-header';
+  ihdr.innerHTML='<span class="ih-name">물품명</span><span class="ih-num">개수</span><span class="ih-note">비고</span><span class="ih-del"></span>';
+  body.appendChild(ihdr);
+
+  const itemsList=document.createElement('div');itemsList.id='items-list';
+  body.appendChild(itemsList);
+  renderItems(r, itemsList);
+
+  const addBtn=document.createElement('button');addBtn.className='add-item-btn';
+  addBtn.innerHTML='➕ 비품 추가';
+  addBtn.addEventListener('click',()=>addItem(r.id));
+  body.appendChild(addBtn);
+
+  panel.appendChild(body);
+}
+
+function renderItems(r, container){
+  container.innerHTML='';
+  r.items.forEach((item,i)=>{
+    const row=document.createElement('div');row.className='item-row';
+
+    const nameIn=document.createElement('input');
+    nameIn.className='item-input name';nameIn.type='text';nameIn.value=item.name;nameIn.placeholder='물품명';
+    nameIn.addEventListener('change',()=>updateItem(r.id,i,'name',nameIn.value));
+
+    const numIn=document.createElement('input');
+    numIn.className='item-input num';numIn.type='number';numIn.value=item.qty;numIn.min='0';
+    numIn.addEventListener('change',()=>updateItem(r.id,i,'qty',numIn.value));
+
+    const noteIn=document.createElement('input');
+    noteIn.className='item-input note';noteIn.type='text';noteIn.value=item.note;noteIn.placeholder='비고';
+    noteIn.addEventListener('change',()=>updateItem(r.id,i,'note',noteIn.value));
+
+    const delBtn=document.createElement('button');delBtn.className='del-btn';delBtn.title='삭제';
+    delBtn.innerHTML='🗑️';
+    delBtn.addEventListener('click',()=>removeItem(r.id,i));
+
+    row.appendChild(nameIn);row.appendChild(numIn);row.appendChild(noteIn);row.appendChild(delBtn);
+    container.appendChild(row);
+  });
+}
+
+function updateRoomName(id,val){
+  const r=(data[currentFloor]||[]).find(r=>r.id===id);
+  if(r){r.name=val;if(selectedRoom&&selectedRoom.id===id)selectedRoom.name=val;}
+  saveData();renderFloor();
+  const ph=document.querySelector('.panel-header-title');if(ph)ph.textContent=val;
+}
+function updateRoomDesc(id,val){
+  const r=(data[currentFloor]||[]).find(r=>r.id===id);
+  if(r){r.desc=val;if(selectedRoom&&selectedRoom.id===id)selectedRoom.desc=val;}
+  saveData();
+}
+
+function addRoomPhoto(id, url) {
+  const r=(data[currentFloor]||[]).find(r=>r.id===id);
+  if(r){
+    if(!r.photos) r.photos = [];
+    r.photos.push(url);
+    if(selectedRoom&&selectedRoom.id===id) selectedRoom.photos = r.photos;
+    saveData(); renderPanel();
+  }
+}
+function removeRoomPhoto(id, idx) {
+  const r=(data[currentFloor]||[]).find(r=>r.id===id);
+  if(r && r.photos){
+    r.photos.splice(idx, 1);
+    if(selectedRoom&&selectedRoom.id===id) selectedRoom.photos = r.photos;
+    saveData(); renderPanel();
+  }
+}
+
+// ★★★ [고도화] 사진 모달 열기 및 휠 스크롤 줌 엔진 초기화 세팅 규칙 추가 ★★★
+function openPhotoModal(photoArray, index) {
+  modalPhotos = photoArray;
+  modalCurrentIdx = index;
+  
+  // 줌인/줌아웃 수치 및 위치값 초기화
+  imgScale = 1;
+  imgPanX = 0;
+  imgPanY = 0;
+  
+  const modal = document.getElementById('photo-modal');
+  if(modal) {
+    modal.style.display = 'flex';
+    updateModalPhotoView();
+  }
+}
+
+function closePhotoModal() {
+  const modal = document.getElementById('photo-modal');
+  if(modal) modal.style.display = 'none';
+}
+
+function moveModalPhoto(dir) {
+  modalCurrentIdx += dir;
+  if(modalCurrentIdx >= modalPhotos.length) modalCurrentIdx = 0;
+  if(modalCurrentIdx < 0) modalCurrentIdx = modalPhotos.length - 1;
+  
+  // 사진을 옆으로 넘길 때는 줌 배율과 드래그 이동 위치를 다시 깨끗하게 초기화해 줍니다.
+  imgScale = 1; imgPanX = 0; imgPanY = 0;
+  updateModalPhotoView();
+}
+
+function updateModalPhotoView() {
+  const img = document.getElementById('modal-img');
+  const idxText = document.getElementById('modal-index');
+  if(img && modalPhotos[modalCurrentIdx]) {
+    img.src = convertDriveUrl(modalPhotos[modalCurrentIdx]);
+    idxText.textContent = `${modalCurrentIdx + 1} / ${modalPhotos.length}`;
+    applyImgTransform();
+  }
+}
+
+// 줌 수치와 이동 좌표를 이미지 스타일에 유기적으로 먹여주는 함수
+function applyImgTransform() {
+  const img = document.getElementById('modal-img');
+  if(img) {
+    img.style.transform = `translate(${imgPanX}px, ${imgPanY}px) scale(${imgScale})`;
+  }
+}
+
+// ★★★ [엔진 빌드] 마우스 휠 스크롤 감지 및 드래그 바인딩 ★★★
+const modalImg = document.getElementById('modal-img');
+const viewport = document.getElementById('modal-img-viewport');
+
+// 1. 마우스 휠 굴릴 때 브라우저 스크롤을 막고 이미지 배율만 줌인/줌아웃 처리
+viewport.addEventListener('wheel', function(e) {
+  e.preventDefault(); // 화면 전체가 스크롤되는 버그 원천 차단
+  
+  const zoomFactor = 0.12; // 스크롤 한 칸당 확대 감도 조절
+  if (e.deltaY < 0) {
+    imgScale = Math.min(6, imgScale + zoomFactor); // 최대 6배까지 확대
+  } else {
+    imgScale = Math.max(0.5, imgScale - zoomFactor); // 최소 0.5배까지 축소
+  }
+  applyImgTransform();
+}, { passive: false });
+
+// 2. 마우스로 붙잡고 슥슥 움직이는(드래그 파닝) 이벤트 장착
+modalImg.addEventListener('mousedown', function(e) {
+  e.preventDefault();
+  isImgDragging = true;
+  startPanX = e.clientX - imgPanX;
+  startPanY = e.clientY - imgPanY;
+});
+
+document.addEventListener('mousemove', function(e) {
+  if (!isImgDragging) return;
+  imgPanX = e.clientX - startPanX;
+  imgPanY = e.clientY - startPanY;
+  applyImgTransform();
+});
+
+document.addEventListener('mouseup', function() {
+  isImgDragging = false;
+});
+
+// 모바일 환경을 위한 멀티 터치 줌 가속 규칙도 추가
+viewport.addEventListener('touchmove', function(e) {
+  if(e.touches.length === 1 && imgScale > 1) {
+    // 이미지가 확대된 상태에서 폰으로 한 손가락 쓸어넘기기 할 때 사진 이동 허용
+    e.preventDefault();
+  }
+}, { passive: false });
+
+
+function updateItem(rid,idx,field,val){
+  const r=(data[currentFloor]||[]).find(r=>r.id===rid);
+  if(r&&r.items[idx]){r.items[idx][field]=field==='qty'?parseInt(val)||0:val;if(selectedRoom&&selectedRoom.id===rid)selectedRoom=r;}
+  saveData();renderFloor();
+}
+function removeItem(rid,idx){
+  const r=(data[currentFloor]||[]).find(r=>r.id===rid);
+  if(!r)return;
+  r.items.splice(idx,1);
+  if(selectedRoom&&selectedRoom.id===rid)selectedRoom=r;
+  saveData();renderFloor();
+  const container=document.getElementById('items-list');
+  if(container)renderItems(r,container);
+  else renderPanel();
+}
+function addItem(rid){
+  const r=(data[currentFloor]||[]).find(r=>r.id===rid);
+  if(!r)return;
+  r.items.push({name:'',qty:1,note:''});
+  if(selectedRoom&&selectedRoom.id===rid)selectedRoom=r;
+  saveData();renderFloor();
+  const container=document.getElementById('items-list');
+  if(container){renderItems(r,container);}
+  else renderPanel();
+  setTimeout(()=>{const ins=document.querySelectorAll('.item-input.name');if(ins.length)ins[ins.length-1].focus();},50);
+}
+function addRoom(){
+  const rooms=data[currentFloor]||(data[currentFloor]=[]);
+  const id=currentFloor+'-'+Date.now();
+  rooms.push({id,name:'새 공간',desc:'',photos:[],x:5,y:68,w:35,h:27,items:[]});
+  selectedRoom=rooms[rooms.length-1];
+  saveData();
+  const delBtn = document.getElementById('del-room-btn');
+  if(delBtn) delBtn.style.display='flex';
+  renderFloor();renderPanel();
+}
+function deleteRoom(){
+  if(!selectedRoom)return;
+  const btn=document.getElementById('del-room-btn');
+  if(!btn) return;
+  if(btn.dataset.confirming==='1'){
+    const id=selectedRoom.id;
+    data[currentFloor]=data[currentFloor].filter(r=>r.id!==id);
+    selectedRoom=null;
+    saveData();
+    btn.dataset.confirming='';
+    btn.innerHTML='🗑️ 공간 삭제';
+    btn.style.background='';btn.style.color='';btn.style.borderColor='';
+    btn.style.display='none';
+    renderFloor();renderPanel();
+  } else {
+    btn.dataset.confirming='1';
+    btn.innerHTML='⚠️ 한번 더';
+    btn.style.background='var(--danger)';btn.style.color='#fff';btn.style.borderColor='var(--danger)';
+    setTimeout(()=>{
+      if(btn.dataset.confirming==='1'){
+        btn.dataset.confirming='';
+        btn.innerHTML='🗑️ 공간 삭제';
+        btn.style.background='';btn.style.color='';btn.style.borderColor='';
+      }
+    },3000);
+  }
+}
+
+function showTab(tab){
+  document.getElementById('view-map').style.display=tab==='map'?'block':'none';
+  document.getElementById('view-list').style.display=tab==='list'?'block':'none';
+  document.getElementById('tab-map').className='tab'+(tab==='map'?' active':'');
+  document.getElementById('tab-list').className='tab'+(tab==='list'?' active':'');
+  if(tab==='list')renderList();
+}
+
+function renderList(){
+  const tbody=document.getElementById('list-tbody');
+  if(!tbody) return;
+  const rows=[];
+  FLOOR_ORDER.forEach(fk=>{
+    (data[fk]||[]).forEach(room=>{
+      if(room.items.length === 0){
+        rows.push({floor:FLOOR_NAMES[fk],room:room.name,desc:room.desc||'',name:'',qty:'',note:''});
+      } else {
+        room.items.forEach(item=>{
+          rows.push({floor:FLOOR_NAMES[fk],room:room.name,desc:room.desc||'',name:item.name,qty:item.qty,note:item.note});
+        });
+      }
+    });
+  });
+  document.getElementById('list-count').textContent=`전체 ${rows.length}개 항목`;
+  document.getElementById('no-data').style.display=rows.length===0?'block':'none';
+  tbody.innerHTML=rows.map(r=>`<tr>
+    <td><span class="floor-chip">${h(r.floor)}</span></td>
+    <td>${h(r.room)}</td>
+    <td class="desc-cell" title="${h(r.desc)}">${h(r.desc)}</td>
+    <td>${h(r.name)}</td>
+    <td class="qty-cell">${r.qty}</td>
+    <td class="note-cell">${h(r.note)}</td>
+  </tr>`).join('');
+}
+
+function exportExcel(){
+  const rows=[['층','장소','공간 설명','물품','개수','비고']];
+  FLOOR_ORDER.forEach(fk=>{
+    (data[fk]||[]).forEach(room=>{
+      if(room.items.length === 0){
+        rows.push([FLOOR_NAMES[fk],room.name,room.desc||'','','','']);
+      } else {
+        room.items.forEach(item=>{
+          rows.push([FLOOR_NAMES[fk],room.name,room.desc||'',item.name,item.qty,item.note||'']);
+        });
+      }
+    });
+  });
+  if(rows.length<=1){alert('등록된 비품이 없어요.');return;}
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:12},{wch:16},{wch:24},{wch:16},{wch:8},{wch:18}];
+  const headerRange=XLSX.utils.decode_range(ws['!ref']);
+  for(let c=headerRange.s.c;c<=headerRange.e.c;c++){
+    const addr=XLSX.utils.encode_cell({r:0,c});
+    if(!ws[addr])continue;
+    ws[addr].s={font:{bold:true},fill:{fgColor:{rgb:'534AB7'}},alignment:{horizontal:'center'}};
+  }
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'비품목록');
+  XLSX.writeFile(wb,'비품목록.xlsx');
+}
+
+function resetData(){
+  if(window._resetConfirming){
+    window._resetConfirming=false;
+    data=JSON.parse(JSON.stringify(defaultData));
+    selectedRoom=null;
+    saveData();
+    setTimeout(() => { renderFloor(); renderPanel(); }, 300);
+    const rb=document.querySelector('[onclick="resetData()"]');
+    if(rb){rb.innerHTML='🔄 초기화';rb.style.background='';rb.style.color='var(--danger)';rb.style.borderColor='#F7C1C1';}
+  } else {
+    window._resetConfirming=true;
+    const rb=document.querySelector('[onclick="resetData()"]');
+    if(rb){rb.innerHTML='⚠️ 정말 초기화?';rb.style.background='var(--danger)';rb.style.color='#fff';rb.style.borderColor='var(--danger)';}
+    setTimeout(()=>{
+      if(window._resetConfirming){
+        window._resetConfirming=false;
+        const rb2=document.querySelector('[onclick="resetData()"]');
+        if(rb2){rb2.innerHTML='🔄 초기화';rb2.style.background='';rb2.style.color='var(--danger)';rb2.style.borderColor='#F7C1C1';}
+      }
+    },3000);
+  }
+}
+
+document.getElementById('floor-canvas').addEventListener('mousedown', function(e) {
+  if (e.target === this || e.target.classList.contains('canvas-grid')) {
+    selectRoom(null);
+  }
+});
+
+
+// ★ [추가] 사진 팝업이 떴을 때 검은색 빈 배경을 누르면 자동으로 닫히는 규칙 ★
+document.getElementById('photo-modal').addEventListener('click', function(e) {
+  // 클릭한 지점이 사진(img)이나 좌우 이동 버튼(button)이 아니라 순수 검은 배경일 때만 닫기
+  if (e.target === this || e.target.id === 'modal-img-viewport' || e.target.classList.contains('modal-content-wrap')) {
+    closePhotoModal();
+  }
+});
+
+loadData();
+</script>
+</body>
+</html>
